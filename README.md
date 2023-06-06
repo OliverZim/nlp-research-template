@@ -35,23 +35,29 @@ mamba lock # create new lockfile based on environment.yml
 mamba lock --update <package-name> # update specific packages in lockfile
 ```
 
+```bash
+mamba lock install --name gpt5 conda-lock.yml # create environment based on lockfile
+mamba lock # create new lockfile based on environment.yml
+mamba lock --update <package-name> # update specific packages in lockfile
+```
+
 </details>
 
 
 ### Environment
 
-Lockfiles are an easy way to **exactly** reproduce an environment.
 
+Lockfiles are an easy way to **exactly** reproduce an environment.
+           
 After having installed `mamba` and `conda-lock`, you can create a `mamba` environment named `gpt5` from a lockfile with all necessary dependencies installed like this:
 
 ```bash
 mamba lock install --name gpt5 conda-lock.yml
 ```
-You can then activate your environment with
-```bash
-mamba activate <environmentName>
-```
-For more commands (e.g. updating or removing environments) have a look at the [conda-documentation](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#removing-an-environment).
+
+That's it -- this is the power of lockfiles.
+
+To generate new lockfiles after updating the `environment.yml` file, simply run `mamba lock`.
 
 You can then activate your environment with
 ```bash
@@ -151,6 +157,7 @@ If you want to run an interactive session with bash don't forget the `--pty` fla
 </p>
 </details>
 
+
 ### Weights & Biases
 Weights & Biases is a platform that provides an easy way to log training results for ML researchers. It lets you create checkpoints of your best models, can save the hyperparameters of your model and even supports Sweeps for hyperparameter optimization. For more information you can visit the [wandb](https://wandb.ai/site)-Website.
 To enable Weights & Biases, enter your `WANDB_ENTITY` and `WANDB_PROJECT` in [dlib/frameworks/wandb.py](dlib/frameworks/wandb.py).
@@ -162,10 +169,3 @@ To enable Weights & Biases, enter your `WANDB_ENTITY` and `WANDB_PROJECT` in [dl
 
 </p>
 </details>
-
-
-
-
-
-
-
