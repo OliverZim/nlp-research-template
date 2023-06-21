@@ -13,8 +13,8 @@ from loguru import logger
 
 from ..frameworks.pytorch import get_rank
 
-WANDB_PROJECT = "test-wandb"
-WANDB_ENTITY = "konstantinjdobler"
+WANDB_PROJECT = "benchmarks"
+WANDB_ENTITY = "oliver-zimmermann"
 
 if WANDB_ENTITY == "<your entity>" or WANDB_PROJECT == "<your project>":
     logger.warning(

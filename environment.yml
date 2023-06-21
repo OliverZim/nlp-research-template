@@ -30,6 +30,7 @@ dependencies:
   - pip
   - pip:
       - warmup-scheduler
+      - nvitop
 
 # Non-standard section listing target platforms for conda-lock:
 platforms:
