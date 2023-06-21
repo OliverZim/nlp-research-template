@@ -21,17 +21,6 @@ curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Ma
 bash Mambaforge-$(uname)-$(uname -m).sh
 ```
 
-<details><summary>using Windows</summary>
-
-<p>
-
-When installing Mamba on Windows you will need to add its Script-folder to your **PATH** environment variable. This folder is by default located at 
-```bash
-C:\Users\user\mambaforge\Scripts
-```
-Afterwards, you will be able to run `mamba` commands simply from your command line. Note that you might not be able to activate your created environments within `powershell`. A simple workaround would be to use `cmd` instead.
-</details>
-
 </details>
 
 <details><summary>Installing <code>conda-lock</code></summary>
@@ -148,7 +137,6 @@ To run the training code inside the docker environment, start your container by 
 bash ./scripts/console.sh   # use this to start the container
 python train.py -n <run-name> -d /path/to/data/ --model roberta-base --offline # execute the training inside your container
 ```
-
 Like when using a [`Dev Container`](#development), by default no GPUs are available inside the container and caches written to `~/.cache` inside the container will not be persistent. You can modify the [console.sh](./scripts/console.sh) script to select GPUs for training, a persistent cache directory and the docker image for the container. Also, make sure to mount the data directory into the container.
 
 **Docker + GPUs:** Always select specififc GPUs via `docker` (e.g. `--gpus device=0,7` for the GPUs with indices `0` and `7` in [console.sh](./scripts/console.sh)) and set the `train.py` script to use all available GPUs for training with `--num_devices=-1` (which is the default).
@@ -186,14 +174,13 @@ If you want to run an interactive session with bash don't forget the `--pty` fla
 </details>
 
 ### Weights & Biases
-
-Weights & Biases is a platform that provides an easy way to log training results for ML researchers. It lets you create checkpoints of your best models, can save the hyperparameters of your model and even supports Sweeps for hyperparameter optimization. For more information you can visit the [website](https://wandb.ai/site). To enable Weights & Biases, enter your `WANDB_ENTITY` and `WANDB_PROJECT` in [dlib/frameworks/wandb.py](dlib/frameworks/wandb.py) and omit the `--offline` flag for training.
-
+Weights & Biases is a platform that provides an easy way to log training results for ML researchers. It lets you create checkpoints of your best models, can save the hyperparameters of your model and even supports Sweeps for hyperparameter optimization. For more information you can visit the [wandb](https://wandb.ai/site)-Website.
+To enable Weights & Biases, enter your `WANDB_ENTITY` and `WANDB_PROJECT` in [dlib/frameworks/wandb.py](dlib/frameworks/wandb.py) and omit the `--offline` flag for training.
 <details><summary>Weights & Biases + Docker</summary>
 
 <p>
 
-When using docker you also have to provide your `WANDB_API_KEY`. You can find your personal key at [wandb.ai/authorize](https://app.wandb.ai/authorize). Either set `WANDB_API_KEY` on your host machine and use the `docker` flag `--env WANDB_API_KEY` when starting your run or use `wandb docker-run` instead of docker run.
+ When using docker you also have to provide your `WANDB_API_KEY`. You can find your personal key at [wandb.ai/authorize](https://app.wandb.ai/authorize). Either set `WANDB_API_KEY` on your host machine and use the `docker` flag `--env WANDB_API_KEY` when starting your run or use `wandb docker-run` instead of docker run.
 
 </p>
 </details>
