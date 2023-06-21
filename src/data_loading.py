@@ -16,7 +16,6 @@ from transformers.data.data_collator import DataCollatorForWholeWordMask
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 
 from dlib.frameworks.pytorch import (
-    get_num_devices,
     get_rank,
     main_process_first,
     set_torch_file_sharing_strategy_to_system,
@@ -69,18 +68,16 @@ class LMDataModule(L.LightningDataModule):
 
         cache_path = os.path.join(
             tokenized_data_dir,
-            f"{self.args.train_file}.{self.args.dev_file}.seq_len_{self.args.max_sequence_length}.tokenizer{tokenizer_name}.tokenize_fn_hash_{tokenize_fn_hash}.arrow",
+            f"{self.args.train_file}.{self.args.dev_file}.seq_len_{self.args.max_sequence_length}.tokenizer_{tokenizer_name}.tokenize_fn_hash_{tokenize_fn_hash}.arrow",
         )
         maybe_cache_path = os.path.join(
             tokenized_data_dir,
-            f"{self.args.train_file}.{self.args.dev_file}.seq_len_{self.args.max_sequence_length}.tokenizer{tokenizer_name}.tokenize_fn_hash_.*.arrow",
+            f"{self.args.train_file}.{self.args.dev_file}.seq_len_{self.args.max_sequence_length}.tokenizer_{tokenizer_name}.tokenize_fn_hash_.*.arrow",
         )
         maybe_cache_path_match_list = glob.glob(maybe_cache_path)
         logger.info(f"Rank {get_rank()} | Cache path: {cache_path}")
 
-        with main_process_first(
-            description="Loading dataset", active=get_num_devices(self.args.devices) > 1
-        ):
+        with main_process_first(description="Loading dataset", active=(self.args.num_devices > 1)):
             if os.path.exists(cache_path):
                 logger.success(f"Rank {get_rank()} | Found cached processed dataset: {cache_path}")
                 processed_datasets = datasets.load_from_disk(cache_path)

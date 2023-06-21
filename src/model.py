@@ -34,11 +34,14 @@ class BasicLM(L.LightningModule):
         adhoc_args: ModelArgs = ModelArgs(),
         effective_batch_size_per_step=-100000,
         vocab_size=None,
-        ksamples_processed=0.0,
+        samples_processed=0.0,
+        tokens_processed=0.0,
     ) -> None:
         super().__init__()
         if not training_args.resume_training:
-            self.save_hyperparameters(ignore=["effective_batch_size_per_step"])
+            self.save_hyperparameters(
+                ignore=["effective_batch_size_per_step", "samples_processed", "tokens_processed"]
+            )
         self.args = training_args
         self.adhoc_args = adhoc_args
         config = AutoConfig.from_pretrained(self.args.model_name_or_path, return_dict=True)
@@ -62,6 +65,8 @@ class BasicLM(L.LightningModule):
             logger.info("Training from scratch without pretrained weights")
 
         self.effective_batch_size_per_step = effective_batch_size_per_step
+        self.register_buffer("samples_processed", torch.tensor(samples_processed))
+        self.register_buffer("tokens_processed", torch.tensor(tokens_processed))
 
     def forward(self, x):
         return self.model(x).logits
@@ -72,10 +77,13 @@ class BasicLM(L.LightningModule):
         return loss
 
     def on_train_batch_end(self, outputs, batch, batch_idx, unused=0) -> None:
-        self.hparams.ksamples_processed += self.effective_batch_size_per_step / 1000
-        self.log(
-            "progress/ksamples",
-            self.hparams.ksamples_processed,
+        self.samples_processed += self.effective_batch_size_per_step
+        self.tokens_processed += self.effective_batch_size_per_step * self.args.max_sequence_length
+        self.log_dict(
+            {
+                "progress/samples": self.samples_processed,
+                "progress/tokens": self.tokens_processed,
+            },
             rank_zero_only=True,
             on_step=True,
             on_epoch=False,
@@ -85,7 +93,11 @@ class BasicLM(L.LightningModule):
         loss = self.model(**batch).loss
 
         self.log_dict(
-            {"val/loss": loss, "progress/ksamples": self.hparams.ksamples_processed},
+            {
+                "val/loss": loss,
+                "progress/samples": self.samples_processed,
+                "progress/tokens": self.tokens_processed,
+            },
             on_step=False,
             on_epoch=True,
             sync_dist=True,

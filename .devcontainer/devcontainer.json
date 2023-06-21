@@ -11,15 +11,16 @@
 			"OS_SELECTOR": "ubuntu" // force ubuntu base OS for devcontainer
 		}
 	},
+	// Specify which devices you want to use (e.g "device=0")
 	"runArgs": [
 		"--ipc=host",
-		"--gpus",
-		"device=CHANGE_ME"
+	//	"--gpus",
+	//	"device=CHANGE_ME"
 	],
-	// mount your cache folder in order to store preprocessed datasets or downloaded models
-	"mounts": [
-		"source=/CHANGE_ME/cache,target=/mamba/.cache,type=bind"
-	],
+	// Optionally mount cache files like HuggingFace datasets cache. The user directory inside the container is /home/mamba/
+	// "mounts": [
+	// 	"source=/MY_HOME_DIR/.cache,target=/home/mamba/.cache,type=bind"
+	// ],
 	"remoteEnv": {
 		"WANDB_API_KEY": "${localEnv:WANDB_API_KEY}"
 	},
@@ -47,8 +48,7 @@
 			]
 		}
 	},
-	// Currently not functioning so we have to install development tools already in the dockerfile for now
-	// "postCreateCommand": "apt-get update && apt-get install openssh-client nano -y"
+	"postCreateCommand": "pipx install conda-lock"
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": []
 }
