@@ -35,6 +35,7 @@ from src.helpers import (
     handle_batch_size_logic_,
 )
 from src.model import BasicLM
+from src.benchmarks import SamplesPerSecondBenchmark, GpuMetricsBenchmark
 
 
 @dataclass
@@ -226,6 +227,10 @@ class MiscArgs:
         help='Apply fix to circumvent "Too many open files" error caused by the PyTorch Dataloader when using many workers or large batches.',  # noqa: E501
         aliases="--open_files_fix",
     )
+    benchmark: bool = dArg(
+        default=True,
+        help='Allows to turn the benchmarking of the script on/off.'
+    )
 
 
 @logger.catch(reraise=True)
@@ -267,6 +272,10 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
         tags=misc_args.wandb_tags,
         **wandb_extra_args,
     )
+
+    ########### define summary metrics for benchmarking ###########
+    if misc_args.benchmark:
+        wandb_logger.experiment.define_metric("SamplesPerSecond", summary="mean")
 
     ########### Specifiy auto arguments ###########
     if args.accelerator == "auto":
@@ -410,7 +419,15 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
     #################### Construct dataloaders & trainer #################
     dm = LMDataModule(training_args=args, misc_args=misc_args)
     lr_monitor = LearningRateMonitor(logging_interval="step")
+
+    ## add callbacks
     callbacks = [checkpoint_callback, wandb_disk_cleanup_callback, lr_monitor]
+    if misc_args.benchmark:
+       # samplesPerSecondBenchmark = SamplesPerSecondBenchmark()
+       # gpuMetricsBenchmark = GpuMetricsBenchmark()
+        benchmarks = [SamplesPerSecondBenchmark(), GpuMetricsBenchmark()]
+        callbacks.extend(benchmarks)
+        print(callbacks)
     if args.accelerator == "cuda":
         callbacks.append(CUDAMetricsCallback())
 
@@ -444,6 +461,7 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
         accumulate_grad_batches=args.gradient_accumulation_steps,
         fast_dev_run=misc_args.fast_dev_run,
         inference_mode=not args.compile,  # inference_mode for val/test and PyTorch 2.0 compiler don't like each other  # noqa: E501
+        num_sanity_val_steps=0,
     )
 
     if args.val_before_training and not args.resume_training:
@@ -485,6 +503,12 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
             logger.info("Pushing to wandb...")
             aliases = ["train_end", "latest"]
             wandb_logger.experiment.log_artifact(artifact, aliases=aliases)
+
+            ### add summary metrics for benchmarking
+            if misc_args.benchmark:
+                wandb_logger.experiment.summary["Number of Workers"] = args.workers
+                wandb_logger.experiment.summary["Compile"] = args.compile
+                wandb_logger.experiment.summary["Precision"] = args.precision
 
             logger.success("Saving finished!")
 
