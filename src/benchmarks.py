@@ -12,7 +12,7 @@ from lightning.pytorch.utilities.exceptions import (  # pylint: disable=import-e
 )
 from nvitop.api import libnvml
 from nvitop.callbacks.utils import get_devices_by_logical_ids, get_gpu_stats
-from nvitop import Device
+from nvitop import Device, CudaDevice, MiB
 
 
 class SamplesPerSecondBenchmark(Callback):
@@ -46,10 +46,11 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
         self,
         memory_utilization: bool = True,
         gpu_utilization: bool = True,
-        intra_step_time: bool = False,
-        inter_step_time: bool = False,
-        fan_speed: bool = False,
-        temperature: bool = False,
+        intra_step_time: bool = True,
+        inter_step_time: bool = True,
+        fan_speed: bool = True,
+        temperature: bool = True,
+        power_usage: bool = True,
     ) -> None:
         super().__init__()
 
@@ -66,6 +67,7 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
         self._inter_step_time = inter_step_time
         self._fan_speed = fan_speed
         self._temperature = temperature
+        self._power_usage = power_usage
 
     def on_train_start(self, trainer, pl_module) -> None:
         if not trainer.logger:
@@ -122,13 +124,47 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
 
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
+    def get_all_gpu_stats(
+        self,
+        devices: list[Device],
+        memory_utilization: bool = True,
+        gpu_utilization: bool = True,
+        fan_speed: bool = True,
+        temperature: bool = True,
+        power_usage: bool = True,) -> dict[str, float]:
+        """Get the GPU status from NVML queries."""
+        stats = {}
+        for device in devices:
+            prefix = f'gpu_id: {device.cuda_index}'
+            if device.cuda_index != device.physical_index:
+                prefix += f' (physical index: {device.physical_index})'
+            with device.oneshot():
+                if memory_utilization or gpu_utilization:
+                    utilization = device.utilization_rates()
+                    if memory_utilization:
+                        stats[f'{prefix}/utilization.memory (%)'] = float(utilization.memory)
+                    if gpu_utilization:
+                        stats[f'{prefix}/utilization.gpu (%)'] = float(utilization.gpu)
+                if memory_utilization:
+                    stats[f'{prefix}/memory.used (MiB)'] = float(device.memory_used()) / MiB
+                    stats[f'{prefix}/memory.free (MiB)'] = float(device.memory_free()) / MiB
+                if fan_speed:
+                    stats[f'{prefix}/fan.speed (%)'] = float(device.fan_speed())
+                if temperature:
+                    stats[f'{prefix}/temperature.gpu (C)'] = float(device.fan_speed())
+                if power_usage:
+                    stats[f'{prefix}/power.used (W)'] = float(device.power_usage()) / 1000
+
+        return stats
+
     def _get_gpu_stats(self) -> dict[str, float]:
         """Get the gpu status from NVML queries."""
-        return get_gpu_stats(
-            devices=self._devices,
-            memory_utilization=self._memory_utilization,
-            gpu_utilization=self._gpu_utilization,
-            fan_speed=self._fan_speed,
-            temperature=self._temperature,
+        return self.get_all_gpu_stats(       # this was get_gpu_stats before
+        #return get_gpu_stats(
+            self._devices,
+            self._memory_utilization,
+            self._gpu_utilization,
+            self._fan_speed,
+            self._temperature,
+            self._power_usage,
         )
-
