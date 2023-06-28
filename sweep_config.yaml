@@ -1,0 +1,16 @@
+program: src/train.py
+method: grid
+metric: 
+  name: val/loss
+  goal: minimize
+parameters:
+  wandb_run_name:
+    values: ["benchmarks"]
+  data_dir:
+    values: ["./data/loremIpsum"]
+  precision: 
+    values: ["16-mixed", "bf16-mixed", 32]
+  workers:
+    values: [1,2,4,8,16,24,32]
+  compile:
+    values: [True, False]

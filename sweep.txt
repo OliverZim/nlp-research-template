@@ -1,0 +1,1 @@
+wandb sweep --entity oliver-zimmermann --project sweepAndBenchmarks sweep_config.yaml
