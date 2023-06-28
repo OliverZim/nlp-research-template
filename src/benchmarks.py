@@ -51,6 +51,7 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
         fan_speed: bool = True,
         temperature: bool = True,
         power_usage: bool = True,
+        power_relative: bool = True,
     ) -> None:
         super().__init__()
 
@@ -68,6 +69,7 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
         self._fan_speed = fan_speed
         self._temperature = temperature
         self._power_usage = power_usage
+        self._power_relative = power_relative
 
     def on_train_start(self, trainer, pl_module) -> None:
         if not trainer.logger:
@@ -131,7 +133,9 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
         gpu_utilization: bool = True,
         fan_speed: bool = True,
         temperature: bool = True,
-        power_usage: bool = True,) -> dict[str, float]:
+        power_usage: bool = True,
+        power_relative: bool = True,
+        ) -> dict[str, float]:
         """Get the GPU status from NVML queries."""
         stats = {}
         for device in devices:
@@ -154,6 +158,8 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
                     stats[f'{prefix}/temperature.gpu (C)'] = float(device.fan_speed())
                 if power_usage:
                     stats[f'{prefix}/power.used (W)'] = float(device.power_usage()) / 1000
+                if power_relative:
+                    stats[f'{prefix}/power.relative (%)'] = float(device.power_usage()/device.power_limit())
 
         return stats
 
@@ -167,4 +173,5 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
             self._fan_speed,
             self._temperature,
             self._power_usage,
+            self._power_relative,
         )
