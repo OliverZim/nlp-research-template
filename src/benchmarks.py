@@ -30,7 +30,7 @@ class SamplesPerSecondBenchmark(Callback):
         
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         # calculate how many samples have been passed so far
-        batch_size = batch["input_ids"].size(dim=1) 
+        batch_size = batch["input_ids"].size(dim=0)
         self.num_samples += batch_size
 
         # compute and log the samplesPerSecond based on the number of samples
