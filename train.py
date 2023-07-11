@@ -35,7 +35,7 @@ from src.helpers import (
     handle_batch_size_logic_,
 )
 from src.model import BasicLM
-from src.benchmarks import SamplesPerSecondBenchmark, GpuMetricsBenchmark
+from src.benchmarks import SamplesPerSecondBenchmark, GpuMetricsBenchmark, set_summary
 
 
 @dataclass
@@ -276,6 +276,7 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
     ########### define summary metrics for benchmarking ###########
     if misc_args.benchmark:
         wandb_logger.experiment.define_metric("SamplesPerSecond", summary="mean")
+        wandb_logger.experiment.define_metric("TokensPerSecond", summary="mean")
 
     ########### Specifiy auto arguments ###########
     if args.accelerator == "auto":
@@ -424,11 +425,11 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
     lr_monitor = LearningRateMonitor(logging_interval="step")
 
     ## add callbacks
-    callbacks = [checkpoint_callback, wandb_disk_cleanup_callback, lr_monitor]
+    callbacks = [wandb_disk_cleanup_callback, lr_monitor] #removed checkpoint_callback
     if misc_args.benchmark:
-       # samplesPerSecondBenchmark = SamplesPerSecondBenchmark()
-       # gpuMetricsBenchmark = GpuMetricsBenchmark()
-        benchmarks = [SamplesPerSecondBenchmark(), GpuMetricsBenchmark()]
+        samplesPerSecondBenchmark = SamplesPerSecondBenchmark(args.max_sequence_length)
+        gpuMetricsBenchmark = GpuMetricsBenchmark()
+        benchmarks = [samplesPerSecondBenchmark, gpuMetricsBenchmark]
         callbacks.extend(benchmarks)
         print(callbacks)
     if args.accelerator == "cuda":
@@ -449,7 +450,7 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
     # Initialize trainer
     trainer = Trainer(
         max_steps=args.training_goal,
-        val_check_interval=args.val_frequency,
+        #val_check_interval=args.val_frequency,
         check_val_every_n_epoch=None,  # validation based on steps instead of epochs
         devices=args.cuda_device_ids or args.num_devices,
         accelerator=args.accelerator,
@@ -458,7 +459,7 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
         deterministic=misc_args.force_deterministic,
         callbacks=callbacks,
         plugins=plugins,
-        enable_checkpointing=True,
+        enable_checkpointing=False,
         precision=args.precision,
         gradient_clip_val=args.gradient_clipping,
         accumulate_grad_batches=args.gradient_accumulation_steps,
@@ -484,35 +485,35 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
     else:
         logger.success("Fit complete, starting validation...")
         # Validate after training has finished
-        trainer.validate(model, dm)
+        #trainer.validate(model, dm)
 
         if current_process_rank == 0:
-            logger.info("Trying to save checkpoint....")
+            # logger.info("Trying to save checkpoint....")
 
-            save_path = str(Path(checkpoint_callback.dirpath) / "last_model_ckpt.ckpt")
-            trainer.save_checkpoint(save_path)
+            # save_path = str(Path(checkpoint_callback.dirpath) / "last_model_ckpt.ckpt")
+            # trainer.save_checkpoint(save_path)
 
-            logger.info("Collecting PL checkpoint for wandb...")
-            artifact = wandb.Artifact(name=f"model-{wandb_logger.experiment.id}", type="model")
-            artifact.add_file(save_path, name="model.ckpt")
+            # logger.info("Collecting PL checkpoint for wandb...")
+            # artifact = wandb.Artifact(name=f"model-{wandb_logger.experiment.id}", type="model")
+            # artifact.add_file(save_path, name="model.ckpt")
 
-            logger.info('Collecting "raw" HF checkpoint for wandb...')
-            # Also save raw huggingface checkpoint, so that we don't need lightning and the current code structure to load the weights  # noqa: E501
-            raw_huggingface_model: PreTrainedModel = trainer.lightning_module.model
-            save_path = str(Path(checkpoint_callback.dirpath) / "raw_huggingface")
-            raw_huggingface_model.save_pretrained(save_path)
-            artifact.add_dir(save_path, name="raw_huggingface")
+            # logger.info('Collecting "raw" HF checkpoint for wandb...')
+            # # Also save raw huggingface checkpoint, so that we don't need lightning and the current code structure to load the weights  # noqa: E501
+            # raw_huggingface_model: PreTrainedModel = trainer.lightning_module.model
+            # save_path = str(Path(checkpoint_callback.dirpath) / "raw_huggingface")
+            # raw_huggingface_model.save_pretrained(save_path)
+            # artifact.add_dir(save_path, name="raw_huggingface")
 
-            logger.info("Pushing to wandb...")
-            aliases = ["train_end", "latest"]
-            wandb_logger.experiment.log_artifact(artifact, aliases=aliases)
+            # logger.info("Pushing to wandb...")
+            # aliases = ["train_end", "latest"]
+            # wandb_logger.experiment.log_artifact(artifact, aliases=aliases)
 
             ### add summary metrics for benchmarking
             if misc_args.benchmark:
                 wandb_logger.experiment.summary["Number of Workers"] = args.workers
                 wandb_logger.experiment.summary["Compile"] = args.compile
                 wandb_logger.experiment.summary["Precision"] = args.precision
-
+                wandb_logger.experiment.summary["Means"] = gpuMetricsBenchmark.compute_mean2()
             logger.success("Saving finished!")
 
 
