@@ -11,4 +11,4 @@ if [ "$current_directory" == "scripts" ]; then
   exit 1
 fi
 
-python train.py --wandb_run_name="benchmarks" -d ./data/loremIpsum
+python train.py --wandb_run_name="firstTestInGroup" --val_before_training=False --training_goal=1000 -d ./data/sw --batch_size_per_device=1 --force_deterministic=True
