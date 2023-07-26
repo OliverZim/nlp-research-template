@@ -484,26 +484,26 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
         trainer.validate(model, dm)
 
         if current_process_rank == 0:
-            
-            logger.info("Trying to save checkpoint....")
+            if not misc_args.benchmark:
+                logger.info("Trying to save checkpoint....")
 
-            save_path = str(Path(checkpoint_callback.dirpath) / "last_model_ckpt.ckpt")
-            trainer.save_checkpoint(save_path)
+                save_path = str(Path(checkpoint_callback.dirpath) / "last_model_ckpt.ckpt")
+                trainer.save_checkpoint(save_path)
 
-            logger.info("Collecting PL checkpoint for wandb...")
-            artifact = wandb.Artifact(name=f"model-{wandb_logger.experiment.id}", type="model")
-            artifact.add_file(save_path, name="model.ckpt")
+                logger.info("Collecting PL checkpoint for wandb...")
+                artifact = wandb.Artifact(name=f"model-{wandb_logger.experiment.id}", type="model")
+                artifact.add_file(save_path, name="model.ckpt")
 
-            logger.info('Collecting "raw" HF checkpoint for wandb...')
-            # Also save raw huggingface checkpoint, so that we don't need lightning and the current code structure to load the weights  # noqa: E501
-            raw_huggingface_model: PreTrainedModel = trainer.lightning_module.model
-            save_path = str(Path(checkpoint_callback.dirpath) / "raw_huggingface")
-            raw_huggingface_model.save_pretrained(save_path)
-            artifact.add_dir(save_path, name="raw_huggingface")
+                logger.info('Collecting "raw" HF checkpoint for wandb...')
+                # Also save raw huggingface checkpoint, so that we don't need lightning and the current code structure to load the weights  # noqa: E501
+                raw_huggingface_model: PreTrainedModel = trainer.lightning_module.model
+                save_path = str(Path(checkpoint_callback.dirpath) / "raw_huggingface")
+                raw_huggingface_model.save_pretrained(save_path)
+                artifact.add_dir(save_path, name="raw_huggingface")
 
-            logger.info("Pushing to wandb...")
-            aliases = ["train_end", "latest"]
-            wandb_logger.experiment.log_artifact(artifact, aliases=aliases)
+                logger.info("Pushing to wandb...")
+                aliases = ["train_end", "latest"]
+                wandb_logger.experiment.log_artifact(artifact, aliases=aliases)
 
             if misc_args.benchmark:
                 wandb_logger.experiment.summary["Number of Workers"] = args.workers
