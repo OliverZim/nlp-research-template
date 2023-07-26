@@ -445,24 +445,44 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
         plugins = [LightningEnvironment()]
 
     # Initialize trainer
-    trainer = Trainer(
-        max_steps=args.training_goal,
-        val_check_interval=args.val_frequency,
-        check_val_every_n_epoch=None,  # validation based on steps instead of epochs
-        devices=args.cuda_device_ids or args.num_devices,
-        accelerator=args.accelerator,
-        strategy=distributed_strategy,
-        logger=wandb_logger,
-        deterministic=misc_args.force_deterministic,
-        callbacks=callbacks,
-        plugins=plugins,
-        enable_checkpointing=True,
-        precision=args.precision,
-        gradient_clip_val=args.gradient_clipping,
-        accumulate_grad_batches=args.gradient_accumulation_steps,
-        fast_dev_run=misc_args.fast_dev_run,
-        inference_mode=not args.compile,  # inference_mode for val/test and PyTorch 2.0 compiler don't like each other  # noqa: E501
-    )
+    if misc_args.benchmark:
+        trainer = Trainer(
+            max_steps=args.training_goal,
+            check_val_every_n_epoch=None,  # validation based on steps instead of epochs
+            devices=args.cuda_device_ids or args.num_devices,
+            accelerator=args.accelerator,
+            strategy=distributed_strategy,
+            logger=wandb_logger,
+            deterministic=misc_args.force_deterministic,
+            callbacks=callbacks,
+            plugins=plugins,
+            enable_checkpointing=False,
+            precision=args.precision,
+            gradient_clip_val=args.gradient_clipping,
+            accumulate_grad_batches=args.gradient_accumulation_steps,
+            fast_dev_run=misc_args.fast_dev_run,
+            inference_mode=not args.compile,  # inference_mode for val/test and PyTorch 2.0 compiler don't like each other  # noqa: E501
+            num_sanity_val_steps=0,
+        )
+    else:
+        trainer = Trainer(
+            max_steps=args.training_goal,
+            val_check_interval=args.val_frequency,
+            check_val_every_n_epoch=None,  # validation based on steps instead of epochs
+            devices=args.cuda_device_ids or args.num_devices,
+            accelerator=args.accelerator,
+            strategy=distributed_strategy,
+            logger=wandb_logger,
+            deterministic=misc_args.force_deterministic,
+            callbacks=callbacks,
+            plugins=plugins,
+            enable_checkpointing=True,
+            precision=args.precision,
+            gradient_clip_val=args.gradient_clipping,
+            accumulate_grad_batches=args.gradient_accumulation_steps,
+            fast_dev_run=misc_args.fast_dev_run,
+            inference_mode=not args.compile,  # inference_mode for val/test and PyTorch 2.0 compiler don't like each other  # noqa: E501
+        )
 
     if args.val_before_training and not args.resume_training:
         # TODO: we could use a new trainer with Trainer(devices=1, num_nodes=1) to prevent samples from possibly getting replicated with DistributedSampler here.  # noqa: E501
