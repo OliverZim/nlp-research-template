@@ -120,12 +120,6 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
         logs = self._get_gpu_stats()
         self._n_observations += 1
 
-        # if self._inter_step_time and self._snap_inter_step_time:
-        #     # First log at beginning of second step
-        #     logs['batch_time/inter_step (ms)'] = 1000.0 * (
-        #         time.monotonic() - self._snap_inter_step_time
-        #     )
-        
         trainer.logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only
@@ -135,11 +129,6 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
 
         logs = self._get_gpu_stats()
         self._n_observations += 1
-
-        # if self._intra_step_time and self._snap_intra_step_time:
-        #     logs['batch_time/intra_step (ms)'] = 1000.0 * (
-        #         time.monotonic() - self._snap_intra_step_time
-        #     )
 
         trainer.logger.log_metrics(logs, step=trainer.global_step)
         
@@ -166,41 +155,33 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
                     if memory_utilization:
                         memory_util = float(utilization.memory)
                         stats[f"{prefix}/utilization.memory (%)"] = memory_util
-                        #self.compute_mean("utilization.memory.mean", device_index, memory_util)
                         self._means["utilization.memory.mean"][device_index] += memory_util
                     if gpu_utilization:
                         gpu_util = float(utilization.gpu)
                         stats[f"{prefix}/utilization.gpu (%)"] = gpu_util
-                        #self.compute_mean("utilization.gpu.mean", device_index, gpu_util)
                         self._means["utilization.gpu.mean"][device_index] += gpu_util
                 if memory_utilization:
                     memory_used = float(device.memory_used()) / MiB
                     memory_free = float(device.memory_free()) / MiB
                     stats[f"{prefix}/memory.used (MiB)"] = memory_used
                     stats[f"{prefix}/memory.free (MiB)"] = memory_free
-                    #self.compute_mean("memory.used.mean", device_index, memory_used)
-                    #self.compute_mean("memory.free.mean", device_index, memory_free)
                     self._means["memory.used.mean"][device_index] += memory_used
                     self._means["memory.free.mean"][device_index] += memory_free
                 if fan_speed:
                     fan_speed = float(device.fan_speed())
                     stats[f"{prefix}/fan.speed (%)"] = fan_speed
-                    #self.compute_mean("fan.speed.mean", device_index, fan_speed)
                     self._means["fan.speed.mean"][device_index] += fan_speed
                 if temperature:
                     gpu_temp = float(device.temperature())
                     stats[f"{prefix}/temperature.gpu (C)"] = gpu_temp
-                    #self.compute_mean("temperature.gpu.mean", device_index, gpu_temp)
                     self._means["temperature.gpu.mean"][device_index] += gpu_temp
                 if power_usage:
                     power_used = float(device.power_usage()) / 1000
                     stats[f"{prefix}/power.used (W)"] = power_used
-                    #self.compute_mean("power.used.mean", device_index, power_used)
                     self._means["power.used.mean"][device_index] += power_used
                 if power_relative:
                     power_relative = float(device.power_usage()/device.power_limit())
                     stats[f"{prefix}/power.relative (%)"] = power_relative
-                    #self.compute_mean("power.relative.mean", device_index, power_relative)
                     self._means["power.relative.mean"][device_index] += power_relative
 
         return stats
@@ -218,72 +199,8 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
             self._power_relative,
         )
 
-    def compute_mean(self, key, device_index, measured_value):
-        n = self._n_observations
-        if (n == 0) :
-            self._means[key][device_index] = measured_value
-        else:
-            old_value = self._means[key][device_index]
-            self._means[key][device_index] = old_value * ((n-1) / n) + (measured_value / n)
-
-    def compute_mean2(self):
+    def compute_means(self):
         for key in self._means:
             self._means[key] = [value / self._n_observations for value in self._means[key]]
         return self._means
-def _set_summary(
-    logger,
-    devices: list[Device],
-    memory_utilization: bool = True,
-    gpu_utilization: bool = True,
-    fan_speed: bool = True,
-    temperature: bool = True,
-    power_usage: bool = True,
-    power_relative: bool = True,
-    ):
-    for device in devices:
-        prefix = f'gpu_id: {device.cuda_index}'
-        if device.cuda_index != device.physical_index:
-            prefix += f' (physical index: {device.physical_index})'
-        if memory_utilization:
-            logger.experiment.define_metric(f"{prefix}/utilization.memory (%)", summary="mean")
-            print(f"{prefix}/utilization.memory (%) set to mean")
-        if gpu_utilization:
-            logger.experiment.define_metric(f"{prefix}/utilization.gpu (%)", summary="mean")
-            print(f"{prefix}/utilization.gpu (%) set to mean")
-        if memory_utilization:
-            logger.experiment.define_metric(f"{prefix}/memory.used (MiB)", summary="mean")
-            logger.experiment.define_metric(f"{prefix}/memory.free (MiB)", summary="mean")
-            print(f"{prefix}/memory.used (MiB) and {prefix}/memory.free (MiB) set to mean")
-        if fan_speed:
-            logger.experiment.define_metric(f"{prefix}/fan.speed (%)", summary="mean")
-            print(f"{prefix}/fan.speed (%) set to mean")
-        if temperature:
-            logger.experiment.define_metric(f"{prefix}/temperature.gpu (C)", summary="mean")
-            print(f"{prefix}/temperature.gpu (C) set to mean")
-        if power_usage:
-            logger.experiment.define_metric(f"{prefix}/power.used (W)", summary="mean")
-            print(f"{prefix}/power.used (W) set to mean")
-        if power_relative:
-            logger.experiment.define_metric(f"{prefix}/power.relative (%)", summary="mean")
-            print(f"{prefix}/power.relative (%) set to mean")
 
-def set_summary(logger) -> None:
-
-    #device_ids = trainer.data_parallel_device_ids
-    try:
-        #self._devices = get_devices_by_logical_ids(device_ids, unique=True)
-        _set_summary(
-            logger,
-            Device.cuda.all(),
-            True,
-            True,
-            True,
-            True,
-            True,
-            True
-        )
-    except (libnvml.NVMLError, RuntimeError) as ex:
-        raise ValueError(
-            f'Cannot use GpuStatsLogger callback because devices unavailable. '
-            f'Received: `gpus={device_ids}`',
-        ) from ex

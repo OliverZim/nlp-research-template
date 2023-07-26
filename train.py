@@ -532,7 +532,7 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
                 wandb_logger.experiment.summary["Number of Workers"] = args.workers
                 wandb_logger.experiment.summary["Compile"] = args.compile
                 wandb_logger.experiment.summary["Precision"] = args.precision
-                wandb_logger.experiment.summary["Means"] = gpuMetricsBenchmark.compute_mean2()
+                wandb_logger.experiment.summary["Means"] = gpuMetricsBenchmark.compute_means()
             logger.success("Saving finished!")
 
 
