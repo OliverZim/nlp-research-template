@@ -11,4 +11,5 @@ if [ "$current_directory" == "scripts" ]; then
   exit 1
 fi
 
-python train.py --wandb_run_name="allPutTogether" --val_before_training=False --training_goal=40000 -d ./data/sw --batch_size_per_device=20 --force_deterministic=False --workers=1 --precision=bf16-mixed --compile=False
+#python train.py --wandb_run_name="finding_max_batch_size" --val_before_training=False --training_goal=2000 -d ./data/sw --batch_size_per_device=42  --workers=8 
+python train.py --val_before_training=False --training_goal=2000 -d ./data/sw --wandb_run_name="workers0" --workers=0

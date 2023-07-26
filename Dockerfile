@@ -25,7 +25,7 @@ FROM --platform=linux/amd64 nvidia/cuda:11.8.0-cudnn8-runtime-ubi8 as amd64ubi8
 # Install compiler for .compile() with PyTorch 2.0 and nano for devcontainers
 RUN yum install -y gcc gcc-c++ nano && yum clean all
 # Copy lockfile to container
-COPY conda-lock.yml /locks/conda-lock.yml
+COPY  oldVersion.conda-lock.yml /locks/conda-lock.yml
 
 # -----------------
 # devcontainer base image for amd64 using Ubuntu
@@ -37,7 +37,7 @@ FROM --platform=linux/amd64 nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 as amd
 # Install compiler for .compile() with PyTorch 2.0 and nano for devcontainers
 RUN apt-get update && apt-get install -y gcc g++ nano openssh-client && apt-get clean
 # Copy lockfile to container
-COPY conda-lock.yml /locks/conda-lock.yml
+COPY oldVersion.conda-lock.yml /locks/conda-lock.yml
 
 # -----------------
 # base image for ppc64le

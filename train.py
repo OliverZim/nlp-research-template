@@ -155,7 +155,7 @@ class TrainingArgs:
     val_before_training: bool = dArg(default=True, help="Run one validation epoch before training.")
     val_only: bool = dArg(default=False, help="Run one validation epoch before training.")
     batch_size_per_device: int = dArg(
-        default=8,
+        default=42,
         help="Batch size per device. If effective_batch_size is specified, this is the maximum batch size per device (you should then increase this in powers of two until you get CUDA OOM errors).",  # noqa: E501
         aliases="-b",
     )
