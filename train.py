@@ -35,6 +35,7 @@ from src.helpers import (
     handle_batch_size_logic_,
 )
 from src.model import BasicLM
+from src.benchmarks import SamplesPerSecondBenchmark, GpuMetricsBenchmark
 
 
 @dataclass
@@ -226,6 +227,10 @@ class MiscArgs:
         help='Apply fix to circumvent "Too many open files" error caused by the PyTorch Dataloader when using many workers or large batches.',  # noqa: E501
         aliases="--open_files_fix",
     )
+    benchmark: bool = dArg(
+        default=True,
+        help='Allows to turn the benchmarking of the script on/off.'
+    )
 
 
 @logger.catch(reraise=True)
@@ -267,6 +272,11 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
         tags=misc_args.wandb_tags,
         **wandb_extra_args,
     )
+
+    ########### define summary metrics for benchmarking ###########
+    if misc_args.benchmark:
+        wandb_logger.experiment.define_metric("SamplesPerSecond", summary="mean")
+        wandb_logger.experiment.define_metric("TokensPerSecond", summary="mean")
 
     ########### Specifiy auto arguments ###########
     if args.accelerator == "auto":
@@ -414,6 +424,11 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
     dm = LMDataModule(training_args=args, misc_args=misc_args)
     lr_monitor = LearningRateMonitor(logging_interval="step")
     callbacks = [checkpoint_callback, wandb_disk_cleanup_callback, lr_monitor]
+    if misc_args.benchmark:
+        samplesPerSecondBenchmark = SamplesPerSecondBenchmark(args.max_sequence_length)
+        gpuMetricsBenchmark = GpuMetricsBenchmark()
+        benchmarks = [samplesPerSecondBenchmark, gpuMetricsBenchmark]
+        callbacks.extend(benchmarks)
     if args.accelerator == "cuda":
         callbacks.append(CUDAMetricsCallback())
 
@@ -469,6 +484,7 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
         trainer.validate(model, dm)
 
         if current_process_rank == 0:
+            
             logger.info("Trying to save checkpoint....")
 
             save_path = str(Path(checkpoint_callback.dirpath) / "last_model_ckpt.ckpt")
@@ -489,6 +505,11 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
             aliases = ["train_end", "latest"]
             wandb_logger.experiment.log_artifact(artifact, aliases=aliases)
 
+            if misc_args.benchmark:
+                wandb_logger.experiment.summary["Number of Workers"] = args.workers
+                wandb_logger.experiment.summary["Compile"] = args.compile
+                wandb_logger.experiment.summary["Precision"] = args.precision
+                wandb_logger.experiment.summary["Means"] = gpuMetricsBenchmark.compute_mean2()
             logger.success("Saving finished!")
 
 
