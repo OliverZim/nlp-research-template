@@ -423,12 +423,14 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
     #################### Construct dataloaders & trainer #################
     dm = LMDataModule(training_args=args, misc_args=misc_args)
     lr_monitor = LearningRateMonitor(logging_interval="step")
-    callbacks = [checkpoint_callback, wandb_disk_cleanup_callback, lr_monitor]
+    callbacks = [wandb_disk_cleanup_callback, lr_monitor]
     if misc_args.benchmark:
         samplesPerSecondBenchmark = SamplesPerSecondBenchmark(args.max_sequence_length)
         gpuMetricsBenchmark = GpuMetricsBenchmark()
         benchmarks = [samplesPerSecondBenchmark, gpuMetricsBenchmark]
         callbacks.extend(benchmarks)
+    else:
+        callbacks.append(checkpoint_callback)
     if args.accelerator == "cuda":
         callbacks.append(CUDAMetricsCallback())
 
@@ -499,9 +501,10 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
             "Detected keyboard interrupt, not trying to save latest checkpoint right now because we detected SLURM and do not want to drain the node..."
         )
     else:
-        logger.success("Fit complete, starting validation...")
-        # Validate after training has finished
-        trainer.validate(model, dm)
+        if not misc_args.benchmark:
+            logger.success("Fit complete, starting validation...")
+            # Validate after training has finished
+            trainer.validate(model, dm)
 
         if current_process_rank == 0:
             if not misc_args.benchmark:
