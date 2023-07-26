@@ -100,7 +100,7 @@ class BasicLM(L.LightningModule):
             },
             on_step=False,
             on_epoch=True,
-            sync_dist=True,
+            sync_dist=True,     #TODO: temporary fix for compile=True was to set this to false but this would lead to problems with distributed training 
         )
 
     def configure_optimizers(self):
