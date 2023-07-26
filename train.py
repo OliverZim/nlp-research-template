@@ -529,9 +529,12 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
                 wandb_logger.experiment.log_artifact(artifact, aliases=aliases)
 
             if misc_args.benchmark:
-                wandb_logger.experiment.summary["Number of Workers"] = args.workers
-                wandb_logger.experiment.summary["Compile"] = args.compile
-                wandb_logger.experiment.summary["Precision"] = args.precision
+                setup = {
+                    "Number of Workers": args.workers,
+                    "Compile": args.compile,
+                    "Precision": args.precision,
+                }
+                wandb_logger.experiment.summary["Setup"] = setup
                 wandb_logger.experiment.summary["Means"] = gpuMetricsBenchmark.compute_means()
             logger.success("Saving finished!")
 
