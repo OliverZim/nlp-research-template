@@ -16,10 +16,10 @@ DEVICES="NONE"
 
 # Change the following to your caching directory if you want persistent caching (e.g. CACHE_DIR="/scratch1/username/.cache"), else set it to NONE
 # if you plan on mounting a cache-folder you will have to create one, before you can run this script
-CACHE_DIR="NONE"
+CACHE_DIR="/scratch1/ozimmermann/cache"
 
 # Change the following image-tag to the name of your own image, if you do not want to use the default one
-IMAGE_TAG="konstantinjdobler/nlp-research-template"
+IMAGE_TAG="oliverzim/nlp-benchmarks"
 
 docker run -it \
     --user $(id -u):$(id -g) \
