@@ -155,7 +155,7 @@ class TrainingArgs:
     val_before_training: bool = dArg(default=True, help="Run one validation epoch before training.")
     val_only: bool = dArg(default=False, help="Run one validation epoch before training.")
     batch_size_per_device: int = dArg(
-        default=8,
+        default=42,
         help="Batch size per device. If effective_batch_size is specified, this is the maximum batch size per device (you should then increase this in powers of two until you get CUDA OOM errors).",  # noqa: E501
         aliases="-b",
     )
@@ -529,12 +529,15 @@ def main(parsed_arg_groups: tuple[TrainingArgs, MiscArgs]):
                 wandb_logger.experiment.log_artifact(artifact, aliases=aliases)
 
             if misc_args.benchmark:
-                setup = {
-                    "Number of Workers": args.workers,
-                    "Compile": args.compile,
-                    "Precision": args.precision,
-                }
-                wandb_logger.experiment.summary["Setup"] = setup
+                # setup = {
+                #     "Number of Workers": args.workers,
+                #     "Compile": args.compile,
+                #     "Precision": args.precision,
+                # }
+                # wandb_logger.experiment.summary["Setup"] = setup
+                wandb_logger.experiment.summary["Number of Workers"] = args.workers
+                wandb_logger.experiment.summary["Compile"] = args.compile
+                wandb_logger.experiment.summayr["Precision"] = args.precision
                 wandb_logger.experiment.summary["Means"] = gpuMetricsBenchmark.compute_means()
             logger.success("Saving finished!")
 
