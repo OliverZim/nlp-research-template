@@ -205,7 +205,7 @@ class GpuMetricsBenchmark(Callback):  # pylint: disable=too-many-instance-attrib
         return self._means
 
 
-def compute_mfu(mean_throughput, peak_max_gpu_throughput = 71, n_parameters = 125*10^6, layers=12, heads=12, head_dimension=64, sequence_length=512)
+def compute_mfu(mean_throughput, peak_max_gpu_throughput = 71, n_parameters = 125*10^6, layers=12, heads=12, head_dimension=64, sequence_length=512):
     # https://arxiv.org/pdf/2204.02311.pdf
 
     # peak_max_gpu_throughput of nvidia rtx 3090 FE -> 71 (Peak FP16 Tensor TFLOPS with FP32 Accumulate) https://images.nvidia.com/aem-dam/en-zz/Solutions/geforce/ampere/pdf/NVIDIA-ampere-GA102-GPU-Architecture-Whitepaper-V1.pdf
