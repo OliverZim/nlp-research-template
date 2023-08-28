@@ -19,7 +19,7 @@ DEVICES="4"
 CACHE_DIR="/scratch1/ozimmermann/cache"
 
 # Change the following image-tag to the name of your own image, if you do not want to use the default one
-IMAGE_TAG="oliverzim/nlp-benchmarks"
+IMAGE_TAG="oliverzim/nlp-benchmarks:oldOPENMPversion"
 
 docker run -it \
     --user $(id -u):$(id -g) \
